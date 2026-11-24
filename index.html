@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Wallet Solana — Prototipe Punya Sendiri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<style>
+  :root{
+    --bg:#F4F5F1; --surface:#FFFFFF; --surface2:#EEF1EC; --ink:#0F1512; --muted:#5B6660; --line:#DFE4DC;
+    --green:#0B8A5F; --green-bright:#14C98A; --green-soft:#E2F4EB; --amber:#8A5A00; --amber-bg:#FFF3D6;
+    --red:#B42318; --red-bg:#FDECEA; --radius:20px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0A0E0C; --surface:#131815; --surface2:#1A201C; --ink:#EDF2EE; --muted:#9AA8A0; --line:#26302A; --green:#2ED39A; --green-bright:#14F195; --green-soft:#122A20; --amber:#FFC24B; --amber-bg:#2A2110; --red:#FF8A80; --red-bg:#2C1715; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;line-height:1.55}
+  button,[role="button"],input,select{font:inherit}
+  button{min-height:44px}
+  a{color:var(--green);font-weight:700}
+  .wrap{max-width:1120px;margin:0 auto;padding:20px 18px 56px}
+  /* header intro */
+  .intro{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:start;margin-top:8px}
+  @media(max-width:860px){.intro{grid-template-columns:1fr}}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:var(--green-soft);color:var(--green);font-weight:800;font-size:13px;letter-spacing:.02em;padding:7px 12px;border-radius:999px;border:1px solid var(--line)}
+  .badge i{width:8px;height:8px;background:var(--green-bright);border-radius:50%;display:block;box-shadow:0 0 0 4px rgba(20,201,138,.18)}
+  h1{font-size:clamp(32px,5vw,52px);line-height:1.02;letter-spacing:-.03em;margin:16px 0 14px;font-weight:800}
+  h1 span{color:var(--green)}
+  .lead{font-size:17px;color:var(--muted);max-width:56ch;margin:0}
+  .lead strong{color:var(--ink)}
+  .points{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+  @media(max-width:520px){.points{grid-template-columns:1fr}}
+  .point{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 15px}
+  .point b{display:block;font-size:14px;margin-bottom:3px}
+  .point p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.45}
+  .warn{margin-top:16px;background:var(--amber-bg);border:1px solid #E8D9A8;border-radius:14px;padding:13px 14px;font-size:13.5px;color:var(--ink)}
+  @media(prefers-color-scheme:dark){.warn{border-color:#4A3A14}}
+  .warn b{color:var(--amber)}
+
+  /* phone / app */
+  .phone{background:#0D120F;border-radius:36px;padding:10px;box-shadow:0 24px 50px rgba(0,0,0,.22);position:sticky;top:16px}
+  @media(max-width:860px){.phone{position:static;max-width:430px;margin:0 auto;width:100%}}
+  .app{background:#0F1512;color:#EDF2EE;border-radius:28px;overflow:hidden;min-height:640px;display:flex;flex-direction:column}
+  @media(prefers-color-scheme:light){.app{background:#101713}}
+  .app-top{padding:18px 18px 6px;display:flex;justify-content:space-between;align-items:center}
+  .acct{display:flex;gap:10px;align-items:center;min-width:0}
+  .avatar{width:38px;height:38px;border-radius:50%;background:#14F195;color:#06281B;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}
+  .acct small{display:block;color:#9AA8A0;font-size:11px;line-height:1.2}
+  .acct strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:block}
+  .pill{font-size:11px;font-weight:800;letter-spacing:.04em;background:#1C2A22;color:#7DEBC0;padding:6px 9px;border-radius:999px;border:1px solid #2A3D32;white-space:nowrap}
+  .balance{padding:16px 18px 8px;text-align:left}
+  .balance small{color:#9AA8A0;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .bal-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:2px}
+  .bal-row .big{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .bal-row .sym{color:#14F195;font-weight:800}
+  .balance p{margin:6px 0 0;color:#9AA8A0;font-size:13px}
+  .addr-box{margin:12px 18px 0;background:#171E1A;border:1px solid #26322B;border-radius:14px;padding:11px 12px;display:flex;gap:10px;align-items:center}
+  .addr-box code{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:#CDE8D8;word-break:break-all;line-height:1.4;flex:1}
+  .mini-btn{background:#223028;color:#fff;border:1px solid #33473B;border-radius:10px;padding:0 12px;min-height:38px;font-size:13px;font-weight:700;cursor:pointer;flex:none}
+  .actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 18px 6px}
+  .act{background:#171E1A;border:1px solid #26322B;border-radius:16px;padding:12px 4px 10px;text-align:center;color:#EDF2EE;cursor:pointer}
+  .act svg{width:22px;height:22px;display:block;margin:0 auto 6px}
+  .act span{font-size:12px;font-weight:700;display:block}
+  .act:disabled{opacity:.55;cursor:not-allowed}
+  .tabs{display:flex;gap:8px;padding:14px 18px 0}
+  .tab{flex:1;background:transparent;border:0;border-bottom:2px solid #26322B;color:#9AA8A0;font-weight:700;font-size:13px;min-height:40px;cursor:pointer}
+  .tab.active{color:#fff;border-color:#14F195}
+  .panel{padding:14px 18px 18px;flex:1}
+  .asset{display:flex;align-items:center;gap:12px;background:#171E1A;border:1px solid #26322B;border-radius:16px;padding:13px 14px;margin-bottom:10px}
+  .coin{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;flex:none}
+  .coin.sol{background:#14F195;color:#06281B}
+  .coin.tok{background:#223028;color:#BFEAD3;border:1px solid #33473B;font-size:12px}
+  .asset .mid{flex:1;min-width:0}
+  .asset .mid b{font-size:14px;display:block}
+  .asset .mid small{color:#9AA8A0;font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .asset .right{text-align:right}
+  .asset .right b{font-size:14px;display:block}
+  .asset .right small{color:#9AA8A0;font-size:12px}
+  .empty{border:1.5px dashed #33473B;border-radius:16px;padding:18px;text-align:center;color:#9AA8A0;font-size:13.5px;line-height:1.5}
+  .empty b{color:#fff;display:block;margin-bottom:4px;font-size:14px}
+  .status{font-size:12.5px;padding:10px 12px;border-radius:12px;margin-bottom:12px;line-height:1.45;display:none}
+  .status.show{display:block}
+  .status.ok{background:#122A20;color:#7DEBC0;border:1px solid #1E4634}
+  .status.err{background:#2C1715;color:#FFB4AB;border:1px solid #5A2A26}
+  .status.load{background:#1A201C;color:#CDE8D8;border:1px solid #33473B}
+  .app-foot{padding:12px 18px 16px;border-top:1px solid #222B26;display:flex;justify-content:space-around}
+  .app-foot span{font-size:11px;color:#7E8D84;font-weight:700;text-align:center}
+  .app-foot span.on{color:#14F195}
+  .app-foot svg{width:20px;height:20px;display:block;margin:0 auto 3px}
+
+  /* sections below */
+  section{margin-top:44px}
+  .sec-head{max-width:680px}
+  .sec-head h2{font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;line-height:1.15;margin:0 0 8px}
+  .sec-head p{color:var(--muted);margin:0;font-size:15.5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{color:var(--muted);font-size:14.5px;margin:0 0 14px}
+  label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
+  input[type="text"]{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:13px;min-height:48px}
+  input[type="text"]:focus{outline:2px solid var(--green);outline-offset:1px}
+  .btn{width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;padding:0 16px;min-height:48px;cursor:pointer;margin-top:10px;font-size:15px}
+  @media(prefers-color-scheme:dark){.btn{color:#04150D;background:var(--green-bright)}}
+  .btn.secondary{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.5}
+  .result{margin-top:14px;display:none}
+  .result.show{display:block}
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv:last-child{border:0}
+  .kv span{color:var(--muted)} .kv b{text-align:right;word-break:break-all}
+  .demo-out{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:13px;display:none;margin-top:14px}
+  .demo-out.show{display:block}
+  .demo-out code{font-family:"JetBrains Mono",monospace;font-size:12px;word-break:break-all;display:block;line-height:1.6}
+  .demo-out small{color:var(--muted);display:block;margin-top:8px;line-height:1.5}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+  @media(max-width:900px){.steps{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .step .num{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:800;font-size:14px;margin-bottom:10px}
+  .step b{font-size:14.5px;display:block;margin-bottom:4px}
+  .step p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5}
+  pre{background:#0D120F;color:#CDE8D8;border-radius:16px;padding:16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.65;margin:16px 0 0;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+  .files{font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.9;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:16px;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+  .safe{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  @media(max-width:760px){.safe{grid-template-columns:1fr}}
+  .safe .card{padding:16px}
+  .safe h3{font-size:15px}
+  .safe p{margin:0;font-size:13.5px}
+  footer{margin-top:44px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:13px;line-height:1.6}
+  .sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="intro">
+    <div>
+      <span class="badge"><i></i> Prototipe jalan — bukan sekadar gambar</span>
+      <h1>Wallet Solana<br><span>punya kamu sendiri.</span></h1>
+      <p class="lead">Ini versi web dari aplikasi wallet-nya. <strong>Tampilannya persis kayak aplikasi di HP</strong>, bisa cek saldo alamat Solana asli langsung dari blockchain, dan bisa bikin alamat wallet demo. Kalau mau jadi APK beneran, kodenya tinggal dipindah ke Flutter lalu di-build lewat GitHub — langkahnya ada di bawah.</p>
+
+      <div class="points">
+        <div class="point"><b>✓ Cek saldo beneran</b><p>Tempel alamat Solana mana pun di panel kanan / form bawah — saldonya diambil langsung dari jaringan Solana mainnet, bukan angka karangan.</p></div>
+        <div class="point"><b>✓ Bikin alamat demo</b><p>Tekan “Buat Wallet Demo” buat lihat cara wallet bikin alamat baru. Kuncinya cuma di memori halaman ini dan hilang pas ditutup.</p></div>
+        <div class="point"><b>✓ Tanpa simpan rahasia</b><p>Halaman ini tidak menyimpan seed phrase / private key kamu di mana pun. Jangan pernah tempel seed phrase ke situs apa pun, termasuk ini.</p></div>
+        <div class="point"><b>✓ Jalan ke APK jelas</b><p>GitHub itu tempat naruh kode. Yang mengubah kode jadi APK adalah Flutter + GitHub Actions — struktur folder &amp; contoh konfigurasinya sudah disiapkan di bawah.</p></div>
+      </div>
+
+      <div class="warn"><b>Jujur dulu ya, cuy:</b> ini <b>versi web</b> dari wallet-nya, bukan APK final. Kirim SOL <b>beneran jalan di devnet</b> (uang mainan) pakai wallet demo di bawah. Kirim di mainnet (duit asli) sengaja dikunci — tanda tangan pakai private key tidak aman dilakukan di halaman web, itu tempatnya di aplikasi HP yang kuncinya tersimpan terenkripsi. Buat pegang duit beneran sekarang, tetap pakai Phantom / Solflare dulu.</div>
+    </div>
+
+    <!-- APP -->
+    <div class="phone" aria-label="Pratinjau aplikasi wallet">
+      <div class="app">
+        <div class="app-top">
+          <div class="acct">
+            <div class="avatar">Z</div>
+            <div><small>Akun utama</small><strong id="acctName">Wallet Zheñzhu</strong></div>
+          </div>
+          <span class="pill">SOLANA · MAINNET</span>
+        </div>
+
+        <div class="balance">
+          <small>Total saldo</small>
+          <div class="bal-row"><span class="big" id="bigBal">—</span><span class="sym">SOL</span></div>
+          <p id="balUsd">Tempel alamat di bawah buat lihat saldo aslinya.</p>
+        </div>
+
+        <div class="addr-box">
+          <code id="addrText">Belum ada alamat dicek</code>
+          <button class="mini-btn" id="copyBtn" type="button">Salin</button>
+        </div>
+
+        <div class="actions">
+          <button class="act" type="button" id="receiveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg><span>Terima</span></button>
+          <button class="act" type="button" id="sendJumpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M12 21V9m0 0l-4 4m4-4l4 4M4 3h16"/></svg><span>Kirim</span></button>
+          <button class="act" type="button" id="refreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M21 12a9 9 0 11-2.6-6.4M21 4v5h-5"/></svg><span>Refresh</span></button>
+          <button class="act" type="button" id="demoBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Baru</span></button>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" type="button">Token</button>
+          <button class="tab" type="button" onclick="document.getElementById('kode').scrollIntoView({behavior:'smooth'})">Jadi APK</button>
+          <button class="tab" type="button" onclick="document.getElementById('aman').scrollIntoView({behavior:'smooth'})">Keamanan</button>
+        </div>
+
+        <div class="panel">
+          <div class="status" id="appStatus"></div>
+          <div id="assetList">
+            <div class="empty"><b>Belum ada alamat</b>Cek saldo dulu pakai form di bawah, atau tekan tombol “Baru” buat bikin alamat demo. Token yang kamu pegang bakal muncul di sini.</div>
+          </div>
+        </div>
+
+        <div class="app-foot">
+          <span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg>Beranda</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Aktivitas</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>Wallet</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5 8-5s6.5 1 8 5"/></svg>Profil</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLS -->
+  <section aria-label="Alat wallet">
+    <div class="sec-head">
+      <h2>Coba sendiri sekarang</h2>
+      <p>Dua alat di bawah ini beneran jalan. Yang pertama membaca blockchain, yang kedua mencontohkan cara wallet membuat alamat baru.</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>1 · Cek saldo alamat Solana</h3>
+        <p>Pakai alamat publik saja — alamat itu memang boleh dilihat siapa pun. Jangan masukkan seed phrase atau private key.</p>
+        <label for="addrInput">Alamat Solana (contoh: alamat wallet make.fun kamu)</label>
+        <input type="text" id="addrInput" placeholder="Tempel alamat di sini… mis. 2h7bkMkt6mRLbXKBRtmrBcp…" autocomplete="off" spellcheck="false">
+        <button class="btn" id="checkBtn" type="button">Cek saldo sekarang</button>
+        <p class="hint">Sumber: Solana mainnet RPC publik (<span style="font-family:'JetBrains Mono',monospace;font-size:12px">api.mainnet-beta.solana.com</span>). Kalau jaringan lagi ramai, kadang perlu tekan sekali lagi.</p>
+        <div class="result" id="checkResult">
+          <div class="kv"><span>Saldo SOL</span><b id="rSol">—</b></div>
+          <div class="kv"><span>Perkiraan nilai</span><b id="rUsd">—</b></div>
+          <div class="kv"><span>Jumlah akun token</span><b id="rTok">—</b></div>
+          <div class="kv"><span>Status</span><b style="color:var(--green)">Terhubung ke mainnet</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>2 · Buat wallet demo</h3>
+        <p>Ini meniru persis yang dilakukan Phantom pas kamu tekan “Create new wallet”: bikin pasangan kunci baru, alamatnya adalah kunci publiknya.</p>
+        <button class="btn" id="demoBtn" type="button">Buat wallet demo baru</button>
+        <button class="btn secondary" id="useDemoBtn" type="button" style="display:none">Pakai alamat demo ini buat cek saldo</button>
+        <div id="devnetTools" style="display:none;margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+          <h3 style="font-size:15px">Kirim &amp; terima — Devnet (uang mainan)</h3>
+          <p style="margin-bottom:12px">Wallet demo kamu hidup selama halaman ini dibuka. Isi dulu pakai tombol airdrop (SOL mainan gratis dari Solana devnet), habis itu kamu bisa kirim ke alamat lain — transaksinya beneran tercatat di devnet, tapi koinnya tidak berharga.</p>
+          <button class="btn secondary" id="airdropBtn" type="button">Minta 1 SOL devnet (gratis)</button>
+          <div class="kv" style="margin-top:6px"><span>Saldo devnet demo</span><b id="devBal">—</b></div>
+          <label for="sendTo" style="margin-top:14px">Alamat tujuan (devnet)</label>
+          <input type="text" id="sendTo" placeholder="Tempel alamat tujuan…" autocomplete="off" spellcheck="false">
+          <label for="sendAmt" style="margin-top:12px">Jumlah SOL</label>
+          <input type="text" id="sendAmt" placeholder="Mis. 0,1" inputmode="decimal" autocomplete="off">
+          <button class="btn" id="sendBtn" type="button">Kirim SOL devnet</button>
+          <p class="hint" id="sendStatus"></p>
+        </div>
+        <div class="demo-out" id="demoOut">
+          <small style="margin:0 0 6px;color:var(--ink);font-weight:700">Alamat publik demo kamu:</small>
+          <code id="demoAddr">—</code>
+          <small>Private key-nya <b>tidak ditampilkan dan tidak disimpan</b> — di wallet beneran, bagian rahasianya muncul sebagai 12/24 kata seed phrase yang cuma boleh kamu yang pegang. Alamat demo ini kosong (0 SOL) dan cuma buat belajar, <b>jangan kirim duit ke sini</b> karena kuncinya hilang pas halaman ditutup.</small>
+        </div>
+        <p class="hint">Tekan berkali-kali juga boleh — tiap tekan, alamatnya beda. Begitulah wallet bekerja: alamat itu acak, bukan dipilih.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- APK PATH -->
+  <section id="kode">
+    <div class="sec-head">
+      <h2>Dari halaman ini jadi APK beneran</h2>
+      <p>GitHub bukan yang bikin APK — GitHub tempat naruh kodenya. Urutannya begini, dan ini yang dipakai programmer beneran:</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><b>Bikin repo di GitHub</b><p>Repo baru, misal <span style="font-family:'JetBrains Mono',monospace;font-size:12px">wallet-solana</span> di akun GitHub kamu. Semua kode wallet ditaruh di sini.</p></div>
+      <div class="step"><div class="num">2</div><b>Tulis kode pakai Flutter</b><p>Satu kode bisa jadi Android + iOS. Buat Solana, pakai paket <span style="font-family:'JetBrains Mono',monospace;font-size:12px">solana</span> di pub.dev buat bikin kunci, cek saldo, dan tanda tangan transaksi.</p></div>
+      <div class="step"><div class="num">3</div><b>GitHub Actions build APK</b><p>Tiap kode di-push, GitHub otomatis nge-build file <span style="font-family:'JetBrains Mono',monospace;font-size:12px">.apk</span>-nya. Kamu tinggal download dari tab Actions — tanpa perlu laptop kencang.</p></div>
+      <div class="step"><div class="num">4</div><b>Install &amp; uji di HP</b><p>Download APK, install, uji pakai devnet (uang mainan) dulu. Jangan langsung mainnet sebelum kode dicek orang yang paham keamanan.</p></div>
+    </div>
+
+    <div class="files" aria-label="Struktur folder proyek">wallet-solana/  ← repo GitHub kamu
+├─ lib/
+│  ├─ main.dart          ← layar wallet (mirip pratinjau di atas)
+│  ├─ wallet_service.dart ← bikin kunci, cek saldo, kirim SOL
+│  └─ secure_store.dart   ← simpan kunci terenkripsi di HP
+├─ android/               ← pengaturan Android / APK
+├─ pubspec.yaml           ← daftar paket (termasuk paket solana)
+└─ .github/workflows/
+   └─ build-apk.yml       ← resep otomatis bikin APK di GitHub</div>
+
+    <pre># .github/workflows/build-apk.yml — contoh resep build APK
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wallet-solana-apk
+          path: build/app/outputs/flutter-apk/app-release.apk</pre>
+    <p class="hint" style="max-width:720px">Catatan jujur: file di atas adalah <b>contoh kerangka</b>, bukan APK jadi. Supaya beneran bisa di-download jadi APK, repo Flutter-nya harus dibuat dan di-push dulu — halaman web ini adalah prototipe tampilan + logika cek saldonya, yang nanti dipindah ke <span style="font-family:'JetBrains Mono',monospace">main.dart</span>.</p>
+  </section>
+
+  <!-- SAFETY -->
+  <section id="aman">
+    <div class="sec-head">
+      <h2>Aturan aman — ini yang paling penting</h2>
+      <p>Wallet itu pegang duit beneran. Sekali kuncinya bocor, duitnya hilang dan tidak bisa dibalikin — tidak ada bank yang bisa nolong.</p>
+    </div>
+    <div class="safe">
+      <div class="card"><h3>Seed phrase = kunci rumah</h3><p>12/24 kata rahasia itu satu-satunya kunci wallet. Tulis di kertas, simpan di rumah. Jangan difoto, jangan dikirim ke chat, jangan diketik di situs mana pun.</p></div>
+      <div class="card"><h3>Alamat publik boleh dibagi</h3><p>Alamat kayak <span style="font-family:'JetBrains Mono',monospace;font-size:12px">2h7bk…T1CmU</span> itu aman dibagikan — orang cuma bisa kirim ke situ dan lihat saldonya, tidak bisa ngambil isinya.</p></div>
+      <div class="card"><h3>Uji pakai uang mainan dulu</h3><p>Solana punya devnet: koinnya gratis dan tidak berharga. Semua versi awal wallet wajib diuji di sana dulu sebelum nyentuh mainnet / duit asli.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Wallet Solana — versi web yang bisa langsung dicoba. Saldo dibaca langsung dari Solana mainnet saat kamu menekan “Cek saldo”; kirim/terima jalan di devnet pakai wallet demo. Halaman ini tidak menyimpan alamat, kunci, atau data apa pun setelah kamu menutupnya — kunci wallet demo hilang pas halaman ditutup, makanya jangan kirim duit asli ke alamat demo.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var RPC = "https://api.mainnet-beta.solana.com";
+  var currentAddr = "";
+  var demoAddr = "";
+  var demoKeypair = null;
+  var lastLamports = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var appStatus = $("appStatus"), addrText = $("addrText"), bigBal = $("bigBal"), balUsd = $("balUsd");
+
+  function setStatus(type, msg){
+    appStatus.className = "status show " + type;
+    appStatus.textContent = msg;
+  }
+  function shortAddr(a){ return a.length > 20 ? a.slice(0,8) + "…" + a.slice(-8) : a; }
+  function fmt(n, d){ return n.toLocaleString("id-ID",{minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+  function rpc(method, params){
+    return fetch(RPC, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({jsonrpc:"2.0", id:1, method:method, params:params})
+    }).then(function(r){ if(!r.ok) throw new Error("RPC " + r.status); return r.json(); })
+      .then(function(j){ if(j.error) throw new Error(j.error.message || "RPC error"); return j.result; });
+  }
+
+  function renderAssets(sol, tokens){
+    var list = $("assetList");
+    var html = '<div class="asset"><div class="coin sol">◎</div><div class="mid"><b>Solana</b><small>SOL · Mainnet</small></div><div class="right"><b>' + fmt(sol, sol < 1 ? 4 : 3) + ' SOL</b><small>koin utama</small></div></div>';
+    if(tokens && tokens.length){
+      tokens.slice(0,8).forEach(function(t){
+        html += '<div class="asset"><div class="coin tok">TOK</div><div class="mid"><b>Token</b><small>' + t.mint + '</small></div><div class="right"><b>' + t.amount + '</b><small>di wallet ini</small></div></div>';
+      });
+      if(tokens.length > 8) html += '<div class="empty">+ ' + (tokens.length-8) + ' akun token lain tidak ditampilkan di prototipe ini.</div>';
+    } else {
+      html += '<div class="empty"><b>Tidak ada token lain</b>Wallet ini cuma pegang SOL, atau tokennya kosong.</div>';
+    }
+    list.innerHTML = html;
+  }
+
+  function checkBalance(addr){
+    addr = (addr||"").trim();
+    if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)){
+      setStatus("err","Alamatnya kayaknya belum bener, cuy. Alamat Solana itu 32–44 karakter, tanpa angka 0 dan huruf O besar. Coba tempel ulang.");
+      return Promise.resolve(false);
+    }
+    currentAddr = addr;
+    addrText.textContent = addr;
+    setStatus("load","Lagi ngambil saldo dari blockchain Solana… tunggu bentar.");
+    $("checkBtn").disabled = true;
+
+    return rpc("getBalance",[addr]).then(function(res){
+      var lamports = (res && typeof res.value === "number") ? res.value : 0;
+      lastLamports = lamports;
+      var sol = lamports / 1000000000;
+      bigBal.textContent = fmt(sol, sol < 1 ? 4 : 3);
+      return rpc("getTokenAccountsByOwner",[addr,{programId:"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},{encoding:"jsonParsed"}])
+        .catch(function(){ return null; })
+        .then(function(tokRes){
+          var tokens = [];
+          if(tokRes && tokRes.value){
+            tokRes.value.forEach(function(v){
+              try{
+                var info = v.account.data.parsed.info;
+                var amt = info.tokenAmount && info.tokenAmount.uiAmountString;
+                if(amt && amt !== "0") tokens.push({mint: info.mint, amount: amt});
+              }catch(e){}
+            });
+          }
+          renderAssets(sol, tokens);
+          $("checkResult").className = "result show";
+          $("rSol").textContent = fmt(sol,6) + " SOL";
+          $("rTok").textContent = tokens.length + " akun token berisi";
+          setStatus("ok","Berhasil — ini saldo asli alamat " + shortAddr(addr) + " dari mainnet, barusan diambil.");
+          // price estimate (best-effort, labelled as estimate)
+          return fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,idr")
+            .then(function(r){ return r.json(); })
+            .then(function(p){
+              if(p && p.solana){
+                balUsd.textContent = "≈ $" + fmt(sol * p.solana.usd, 2) + " · ≈ Rp " + fmt(sol * p.solana.idr, 0) + " — perkiraan dari harga CoinGecko saat ini.";
+                $("rUsd").textContent = "$" + fmt(sol * p.solana.usd,2) + " (perkiraan)";
+              } else { balUsd.textContent = "Nilai SOL di atas adalah saldo aslinya."; $("rUsd").textContent = "—"; }
+            })
+            .catch(function(){ balUsd.textContent = "Saldo SOL di atas asli; harga rupiah/dolar lagi tidak bisa diambil."; $("rUsd").textContent = "—"; });
+        });
+    }).catch(function(err){
+      setStatus("err","Gagal ngambil saldo (" + err.message + "). RPC publik kadang lagi penuh — coba tekan Refresh sekali lagi.");
+      return false;
+    }).then(function(){ $("checkBtn").disabled = false; });
+  }
+
+  $("checkBtn").addEventListener("click", function(){ checkBalance($("addrInput").value); });
+  $("addrInput").addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); checkBalance(this.value); } });
+  $("refreshBtn").addEventListener("click", function(){
+    if(currentAddr) checkBalance(currentAddr);
+    else setStatus("load","Belum ada alamat yang dicek. Tempel alamat dulu di form “Cek saldo” di bawah ya, cuy.");
+  });
+  $("receiveBtn").addEventListener("click", function(){
+    if(currentAddr){ setStatus("ok","Ini alamat terima kamu: " + currentAddr + " — tekan Salin di kotak alamat buat menyalinnya. Orang bisa kirim SOL ke alamat ini."); }
+    else setStatus("load","Buat terima SOL, kamu butuh alamat dulu. Bikin alamat demo pakai tombol “Baru”, atau cek alamat yang sudah kamu punya.");
+  });
+  $("copyBtn").addEventListener("click", function(){
+    if(!currentAddr && !demoAddr){ setStatus("load","Belum ada alamat buat disalin."); return; }
+    var a = currentAddr || demoAddr;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(a).then(function(){ setStatus("ok","Alamat tersalin: " + shortAddr(a)); });
+    } else {
+      var ta = document.createElement("textarea"); ta.value = a; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); setStatus("ok","Alamat tersalin: " + shortAddr(a)); }catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+
+  function makeDemo(){
+    try{
+      if(window.solanaWeb3 && solanaWeb3.Keypair){
+        var kp = solanaWeb3.Keypair.generate();
+        demoKeypair = kp;
+        demoAddr = kp.publicKey.toBase58();
+      } else { throw new Error("lib belum siap"); }
+    }catch(e){
+      // Fallback: tunjukkan contoh format alamat demo (bukan kunci asli) kalau library gagal dimuat
+      demoAddr = "";
+      setStatus("err","Library Solana lagi gagal dimuat, jadi alamat demo belum bisa dibikin. Coba refresh halamannya, cuy.");
+      return;
+    }
+    $("demoAddr").textContent = demoAddr;
+    $("demoOut").className = "demo-out show";
+    $("useDemoBtn").style.display = "block";
+    $("devnetTools").style.display = "block";
+    $("devBal").textContent = "0 SOL (devnet)";
+    $("sendStatus").textContent = "";
+    addrText.textContent = demoAddr;
+    currentAddr = "";
+    bigBal.textContent = "0,0000";
+    balUsd.textContent = "Alamat demo baru — masih kosong, memang begitu wallet baru.";
+    renderAssets(0, []);
+    setStatus("ok","Wallet demo jadi! Alamatnya: " + shortAddr(demoAddr) + " — saldonya 0 karena ini baru dan kuncinya tidak disimpan.");
+  }
+  // ---- Devnet: airdrop + kirim SOL mainan pakai wallet demo (kunci cuma di memori sesi ini) ----
+  function devConn(){
+    return new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("devnet"), "confirmed");
+  }
+  function refreshDevBal(){
+    if(!demoKeypair) return Promise.resolve();
+    return devConn().getBalance(demoKeypair.publicKey).then(function(l){
+      $("devBal").textContent = fmt(l/1000000000, 4) + " SOL (devnet)";
+    }).catch(function(){ $("devBal").textContent = "gagal diambil, coba lagi"; });
+  }
+  $("sendJumpBtn").addEventListener("click", function(){
+    document.getElementById("devnetTools").scrollIntoView({behavior:"smooth"});
+    if(!demoKeypair) setStatus("load","Bikin wallet demo dulu di bagian “Buat wallet demo” di bawah — dari situ kamu bisa minta SOL devnet dan kirim beneran di jaringan mainan.");
+  });
+  $("airdropBtn").addEventListener("click", function(){
+    if(!demoKeypair){ $("sendStatus").textContent = "Bikin wallet demo dulu ya, cuy."; return; }
+    var btn = this; btn.disabled = true;
+    $("sendStatus").textContent = "Minta airdrop ke devnet… kadang antre, tunggu bentar.";
+    var conn = devConn();
+    conn.requestAirdrop(demoKeypair.publicKey, 1000000000).then(function(sig){
+      return conn.confirmTransaction(sig, "confirmed");
+    }).then(function(){
+      $("sendStatus").textContent = "Dapat 1 SOL devnet. Ini uang mainan buat latihan — tidak bisa dijual.";
+      return refreshDevBal();
+    }).catch(function(err){
+      $("sendStatus").textContent = "Airdrop gagal (" + err.message + "). Faucet devnet kadang dibatasi — coba lagi beberapa menit lagi.";
+    }).then(function(){ btn.disabled = false; });
+  });
+  $("sendBtn").addEventListener("click", function(){
+    if(!demoKeypair){ $("sendStatus").textContent = "Bikin wallet demo dulu ya, cuy."; return; }
+    var to = $("sendTo").value.trim();
+    var amt = parseFloat(($("sendAmt").value || "").replace(",", "."));
+    if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(to)){ $("sendStatus").textContent = "Alamat tujuannya belum bener. Cek lagi tempelannya."; return; }
+    if(!(amt > 0)){ $("sendStatus").textContent = "Isi jumlah SOL-nya dulu, misal 0,1."; return; }
+    var btn = this; btn.disabled = true;
+    $("sendStatus").textContent = "Mengirim ke devnet…";
+    try{
+      var conn = devConn();
+      var tx = new solanaWeb3.Transaction().add(solanaWeb3.SystemProgram.transfer({
+        fromPubkey: demoKeypair.publicKey,
+        toPubkey: new solanaWeb3.PublicKey(to),
+        lamports: Math.round(amt * 1000000000)
+      }));
+      solanaWeb3.sendAndConfirmTransaction(conn, tx, [demoKeypair]).then(function(sig){
+        $("sendStatus").textContent = "Terkirim di devnet! Bukti transaksinya (signature): " + sig + " — bisa dicek di explorer.solana.com/?cluster=devnet";
+        return refreshDevBal();
+      }).catch(function(err){
+        $("sendStatus").textContent = "Kirim gagal (" + err.message + "). Paling sering karena saldo devnet kurang — minta airdrop dulu.";
+      }).then(function(){ btn.disabled = false; });
+    }catch(err){
+      $("sendStatus").textContent = "Kirim gagal (" + err.message + ").";
+      btn.disabled = false;
+    }
+  });
+
+  $("demoBtn").addEventListener("click", makeDemo);
+  $("demoBtn2").addEventListener("click", makeDemo);
+  $("useDemoBtn").addEventListener("click", function(){
+    if(demoAddr){ $("addrInput").value = demoAddr; checkBalance(demoAddr); window.scrollTo({top:0, behavior:"smooth"}); }
+  });
+})();
+</script>
+</body>
+</html>
